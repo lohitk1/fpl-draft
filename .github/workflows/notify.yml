@@ -1,4 +1,5 @@
 name: fpl-notify
+# runs notify.py in the cloud
 on:
   schedule:
     - cron: "*/20 * * * *"   # GitHub may delay this by several minutes
