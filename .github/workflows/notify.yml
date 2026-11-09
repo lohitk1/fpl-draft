@@ -1,0 +1,34 @@
+name: fpl-notify
+on:
+  schedule:
+    - cron: "*/20 * * * *"   # GitHub may delay this by several minutes
+  workflow_dispatch: {}
+concurrency:
+  group: fpl-notify
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.10" }
+      - name: Restore state
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/notify_state.json
+          key: state-none
+          restore-keys: state-
+      - name: Run notifier
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: python3 notify.py --cloud --no-toast
+      - name: Save state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/notify_state.json
+          key: state-${{ github.run_id }}-${{ github.run_attempt }}
