@@ -3,9 +3,14 @@ name: fpl-notify
 on:
   schedule:
     - cron: "*/20 * * * *"   # GitHub may delay this by several minutes
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "send a test message and exit"
+        type: boolean
+        default: false
 concurrency:
-  group: fpl-notify
+  group: fpl-notify${{ inputs.test && '-test' || '' }}
   cancel-in-progress: false
 permissions:
   contents: read
@@ -23,12 +28,18 @@ jobs:
           path: .cache/notify_state.json
           key: state-none
           restore-keys: state-
+      - name: Test message
+        if: ${{ inputs.test }}
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: python3 notify.py --test --no-toast
       - name: Run notifier
+        if: ${{ !inputs.test }}
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: python3 notify.py --cloud --no-toast
       - name: Save state
-        if: always()
+        if: ${{ always() && !inputs.test }}
         uses: actions/cache/save@v4
         with:
           path: .cache/notify_state.json
